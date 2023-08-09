@@ -19,21 +19,6 @@ let create_extraction_file (dir : string) (filename : string) : unit =
   in let extract_file_name = Consts.fmt ("%s/%s") dir "extract.ml"
   in Utils.write_to_file extract_file_name lfind_content
 
-(* let get_lemma_statement_for_generation (context : LFContext.t) : string = 
-  let implicit_types = ref "" in
-  let var_str = 
-    List.fold_left 
-    (fun acc var -> 
-      try
-        let (typ,_,_) = Hashtbl.find context.variables var in
-        if Hashtbl.mem context.types var 
-        then (implicit_types := !implicit_types ^ (Consts.fmt "{%s}" var); acc)
-        else (acc ^ " (" ^ var ^ " : " ^ (LFContext.e_str context typ) ^ ")")
-      with _  -> print_endline "Type not found, potential error"; acc)
-    ""
-    (List.map Names.Id.to_string (LFContext.get_variable_list context)) in
-  Consts.fmt "Lemma lfind_state %s %s : %s.\nAdmitted." !implicit_types var_str (LFContext.e_str context context.goal) *)
-
 let get_print_signature (context : LFContext.t) =
   let vars = List.rev (LFContext.get_variable_list context) in
   let non_types = List.filter (fun x -> (Hashtbl.mem context.types (Names.Id.to_string x)) = false) vars in 
@@ -120,6 +105,7 @@ let coq_quickchick_prereqs (context : LFContext.t) (count : int) (use_goal_state
     [file_intro; (lfind_state_definition ^ "\n"); quickchick_import]
   in lfind_generator_prereqs ^ "\n" 
 
+(* This function is used to use QuickChick to generate examples that satisfy the stuck state (fails is stuck state invalid) *)
 let run (context : LFContext.t) : string list =
   create_extraction_file context.lfind_dir context.filename; 
   let example_file = Consts.fmt ("%s/%s") context.lfind_dir "lfind_quickchick_generator.v" in 
@@ -132,6 +118,7 @@ let run (context : LFContext.t) : string list =
   let cmd = Consts.fmt "cd %s/ && coqc -R . %s %s" context.lfind_dir context.namespace example_file
   in Utils.run_cmd cmd
 
+(* This function is used to generate a bunch of values and then filter which ones are valid examples for the stuck state *)
 let generate_values (context : LFContext.t) : string list =
   (* already made from first attempt --> create_extraction_file context.lfind_dir context.filename;  *)
   let example_file = Consts.fmt ("%s/%s") context.lfind_dir "lfind_quickchick_generator.v" in 

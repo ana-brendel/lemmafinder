@@ -58,7 +58,7 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
           (* Quickchick failure message that is printed: *** Failed after _ tests and _ shrinks. *)
           in let quickchick_success = List.fold_left (fun acc l -> acc || (Utils.contains l "+++ Passed 50 tests") ) false op
           in quickchick_passed := quickchick_success;
-          if not ran_successfully then raise (Invalid_Examples "Quickchick failed to run successfully") else 
+          if not ran_successfully then raise (Invalid_Examples "Quickchick failed to run successfully (initial)") else 
           if quickchick_success then Feedback.msg_info (Pp.str "lemmafinder_example_generation_success") else 
           (
             let op2 = ExampleGeneration.generate_values context in
