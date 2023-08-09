@@ -39,7 +39,7 @@ let coq_file_intro (context : LFContext.t) : string =
   let lfind__prereqs = String.concat "\n" [Consts.lfind_declare_module; import_file; module_imports]
   in lfind__prereqs ^ "\n"
 
-let quickchick_imports (context : LFContext.t) : string =
+let quickchick_imports (context : LFContext.t) (count : int) : string =
   let quickchick_import = Consts.quickchick_import in
   let qc_include = Consts.fmt ("QCInclude \"%s/\".\nQCInclude \".\".") context.lfind_dir in
   (* NOTE : should look out for bugs here, when the type properties need to be automatically generated *)
@@ -47,7 +47,7 @@ let quickchick_imports (context : LFContext.t) : string =
   let type_derivations = String.concat "\n\n" (Utils.remove_duplicates String.equal typ_dev_list) in
   let setting_unknown_types = set_nat_as_unknown_type context in
   let lfind_generator_prereqs =  String.concat "\n"
-    [quickchick_import; qc_include; Consts.def_qc_num_examples; type_derivations; setting_unknown_types]
+    [quickchick_import; qc_include; (Consts.def_qc_num_examples count); type_derivations; setting_unknown_types]
   in lfind_generator_prereqs ^ "\n"
 
 let replace_subterm_econstr (context : LFContext.t) (goal : EConstr.t) (subterm : EConstr.t) (fill : EConstr.t) : EConstr.t =
@@ -95,10 +95,10 @@ let replace_subterm_econstr (context : LFContext.t) (goal : EConstr.t) (subterm 
     | _ -> current
   in EConstr.of_constr (iterate (EConstr.to_constr sigma goal))
 
-let create_quickchick_file (context : LFContext.t) (name : string) (define_lemma : string) : string =
+let create_quickchick_file (context : LFContext.t) (name : string) (define_lemma : string) (count : int) : string =
   let lfind_file = context.lfind_dir ^ "/lfind_" ^ name ^ ".v" in
   let coq_intro = coq_file_intro context in
-  let quickchick_intro = quickchick_imports context in
+  let quickchick_intro = quickchick_imports context count in
   let run_quickchick = "QuickChick " ^ name ^ "." in
   let content = String.concat "\n" [coq_intro; quickchick_intro; define_lemma; "Admitted."; run_quickchick ] in
   Utils.write_to_file lfind_file content;

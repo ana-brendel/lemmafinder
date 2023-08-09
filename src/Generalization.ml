@@ -38,7 +38,7 @@ let pp (context : LFContext.t) (generalization : t) : string =
 
 let quickchick (context : LFContext.t) (g : t) : string =
   let lemma_prettyprint = pp context g in
-  LFUtils.create_quickchick_file context g.label lemma_prettyprint
+  LFUtils.create_quickchick_file context g.label lemma_prettyprint 50
 
 let equal (context : LFContext.t) (g1 : t) (g2 : t) : bool =
   let goals_equal = String.equal (LFContext.e_str context (g1.goal)) (LFContext.e_str context (g2.goal)) in

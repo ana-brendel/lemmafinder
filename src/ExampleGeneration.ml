@@ -19,7 +19,7 @@ let create_extraction_file (dir : string) (filename : string) : unit =
   in let extract_file_name = Consts.fmt ("%s/%s") dir "extract.ml"
   in Utils.write_to_file extract_file_name lfind_content
 
-let get_lemma_statement_for_generation (context : LFContext.t) : string = 
+(* let get_lemma_statement_for_generation (context : LFContext.t) : string = 
   let implicit_types = ref "" in
   let var_str = 
     List.fold_left 
@@ -32,7 +32,7 @@ let get_lemma_statement_for_generation (context : LFContext.t) : string =
       with _  -> print_endline "Type not found, potential error"; acc)
     ""
     (List.map Names.Id.to_string (LFContext.get_variable_list context)) in
-  Consts.fmt "Lemma lfind_state %s %s : %s.\nAdmitted." !implicit_types var_str (LFContext.e_str context context.goal)
+  Consts.fmt "Lemma lfind_state %s %s : %s.\nAdmitted." !implicit_types var_str (LFContext.e_str context context.goal) *)
 
 let get_print_signature (context : LFContext.t) =
   let vars = List.rev (LFContext.get_variable_list context) in
@@ -84,10 +84,38 @@ let construct_data_collection (context : LFContext.t) : string =
   in Consts.fmt ("%s let lfind_var := %s\n in let lfind_v := print %s lfind_var\n in lfind_state %s lfind_v.\n")
   func_signature examples last_variable (String.concat " " others)
 
-let coq_quickchick_prereqs (context : LFContext.t) : string =
-  let lfind_state_definition = get_lemma_statement_for_generation context in 
+let lemma_for_value_generation (context : LFContext.t) (use_goal_state : bool) : string = 
+  let implicit_types = ref "" in
+  let var_str = 
+    List.fold_left 
+    (fun acc var -> 
+      try
+        let (typ,_,_) = Hashtbl.find context.variables var in
+        if Hashtbl.mem context.types var 
+        then (implicit_types := !implicit_types ^ (Consts.fmt "{%s}" var); acc)
+        else (acc ^ " (" ^ var ^ " : " ^ (LFContext.e_str context typ) ^ ")")
+      with _  -> print_endline "Type not found, potential error"; acc)
+    ""
+    (List.map Names.Id.to_string (LFContext.get_variable_list context)) in
+  let body_str = 
+    List.fold_left 
+    (fun acc var -> 
+      try
+        let (typ,_,_) = Hashtbl.find context.variables var in
+        if Hashtbl.mem context.types var 
+        then acc
+        else (("(@eq " ^ (LFContext.e_str context typ) ^ " " ^ var ^ " " ^ var ^ ")") :: acc)
+      with _  -> print_endline "Type not found, potential error"; acc)
+    []
+    (List.map Names.Id.to_string (LFContext.get_variable_list context)) in
+  match use_goal_state with
+  | true -> Consts.fmt "Lemma lfind_state %s %s : %s.\nAdmitted." !implicit_types var_str (LFContext.e_str context context.goal)
+  | false -> Consts.fmt "Lemma lfind_state %s %s : %s.\nAdmitted." !implicit_types var_str (String.concat " /\\ " body_str)
+
+let coq_quickchick_prereqs (context : LFContext.t) (count : int) (use_goal_state : bool) : string =
+  let lfind_state_definition = lemma_for_value_generation context use_goal_state in 
   let file_intro = LFUtils.coq_file_intro context in
-  let quickchick_import = LFUtils.quickchick_imports context in
+  let quickchick_import = LFUtils.quickchick_imports context count in
   let lfind_generator_prereqs =  String.concat "\n"
     [file_intro; (lfind_state_definition ^ "\n"); quickchick_import]
   in lfind_generator_prereqs ^ "\n" 
@@ -95,7 +123,22 @@ let coq_quickchick_prereqs (context : LFContext.t) : string =
 let run (context : LFContext.t) : string list =
   create_extraction_file context.lfind_dir context.filename; 
   let example_file = Consts.fmt ("%s/%s") context.lfind_dir "lfind_quickchick_generator.v" in 
-  let lfind_generator_prereqs = coq_quickchick_prereqs context in
+  let lfind_generator_prereqs = coq_quickchick_prereqs context 50 true in
+  let extract_print_const = "Extract Constant print => \"Extract.print\".\n" in (* Consts.extract_print *)
+  let example_print_content = Consts.fmt("%s\n%s%s")  Consts.string_scope (get_print_signature context) extract_print_const in
+  let collect_content = construct_data_collection context in
+  let content = lfind_generator_prereqs ^ example_print_content ^ collect_content ^ "QuickChick collect_data.\n" ^ Consts.vernac_success in
+  Utils.write_to_file example_file content;
+  let cmd = Consts.fmt "cd %s/ && coqc -R . %s %s" context.lfind_dir context.namespace example_file
+  in Utils.run_cmd cmd
+
+let generate_values (context : LFContext.t) : string list =
+  (* already made from first attempt --> create_extraction_file context.lfind_dir context.filename;  *)
+  let example_file = Consts.fmt ("%s/%s") context.lfind_dir "lfind_quickchick_generator.v" in 
+  let example_output = Consts.fmt "%s/examples_%s.txt" context.lfind_dir context.filename in
+  (* Remove previous example generation files that will be re-used *)
+  Utils.remove_file example_file; Utils.remove_file example_output;
+  let lfind_generator_prereqs = coq_quickchick_prereqs context 150 false in
   let extract_print_const = "Extract Constant print => \"Extract.print\".\n" in (* Consts.extract_print *)
   let example_print_content = Consts.fmt("%s\n%s%s")  Consts.string_scope (get_print_signature context) extract_print_const in
   let collect_content = construct_data_collection context in

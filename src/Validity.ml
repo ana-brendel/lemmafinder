@@ -90,7 +90,7 @@ let check_hypotheses (context : LFContext.t) (generalization : Generalization.t)
         then false
         else 
           (
-            let file = LFUtils.create_quickchick_file context "generalized_hypothesis" sub_expr in
+            let file = LFUtils.create_quickchick_file context "generalized_hypothesis" sub_expr 50 in
             let output = Evaluate.run_eval context.lfind_dir file context.namespace in
             List.fold_left (fun acc l -> acc || (Utils.contains l "Failed") ) false output
           )

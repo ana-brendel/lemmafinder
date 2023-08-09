@@ -7,7 +7,7 @@ let remove_duplicate_conj (context : LFContext.t) (conj : Conjecture.t list)  : 
 
 let create_quickchick_eval_for_conj (context : LFContext.t) (conj : Conjecture.t) : string =
   let eval_file = context.lfind_dir ^ (Consts.fmt "/lfind_eval_%s.v" conj.label) in
-  let file_intro = ExampleGeneration.coq_quickchick_prereqs context in
+  let file_intro = ExampleGeneration.coq_quickchick_prereqs context 50 true in
   let content = String.concat "\n" 
   [file_intro; (Conjecture.get_pretty_print context conj); "Admitted."; (Consts.fmt "QuickChick %s." conj.label)] in
   Utils.write_to_file eval_file content;

@@ -30,13 +30,13 @@ let parse_output (output : string list) : string option=
   let flattened = String.concat " " (List.map String.trim output) in
   let split_on_equal = String.split_on_char '=' flattened in
   if (List.length split_on_equal != 2)
-  then raise (Failure ("1. Error in parsing output for example propgation (triggered in Evaluate.ml) \nOn line: " ^ flattened))
+  then raise (Failure ("1. Error in parsing output for example propgation (triggered in Evaluate.ml) -- On line: " ^ flattened))
   else 
     (
       let content = List.hd (List.rev split_on_equal) in
       let split_from_type = String.split_on_char ':' content in
       if (List.length split_from_type != 2)
-      then raise (Failure ("2. Error in parsing output for example propgation (triggered in Evaluate.ml) \nOn line: " ^ flattened))
+      then raise (Failure ("2. Error in parsing output for example propgation (triggered in Evaluate.ml) -- On line: " ^ flattened))
       else Some (String.trim (List.hd split_from_type))
     )
 
@@ -73,3 +73,9 @@ let econstr_term_with_vars (context : LFContext.t) (variables : (string, Evd.eco
   let eval_file = generate_eval_file context evaluation_string in
   let output = run_eval context.lfind_dir eval_file context.namespace in
   parse_output output
+
+let evaluate_string (context : LFContext.t) (str : string) : bool =
+  let eval_string = "Lemma eval_example : " ^ str ^ "." in
+  let eval_file = LFUtils.create_quickchick_file context "eval_example" eval_string 1 in
+  let output = run_eval context.lfind_dir eval_file context.namespace in
+  List.fold_left (fun acc l -> acc || (Utils.contains l "+++ Passed 1 tests") ) false output
