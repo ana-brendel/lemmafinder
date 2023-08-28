@@ -36,6 +36,8 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
   Consts.debug := debug; 
   let quickchick_passed = ref false in
 
+  (* Add comment to push new branch *)
+
   Proofview.Goal.enter
   begin fun gl ->
     let is_running = Utils.get_env_var "is_lfind" in 
