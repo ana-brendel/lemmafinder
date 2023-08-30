@@ -20,7 +20,7 @@ let quickchick_import = "From QuickChick Require Import QuickChick."
 let string_scope = "Open Scope string_scope.\n"
 let extract_print = "Extract Constant print => \"Extract.print\".\n"
 let vernac_success = "Success."
-let def_qc_num_examples = "Extract Constant defNumTests => \"50\"."
+let def_qc_num_examples (count : int)= fmt "Extract Constant defNumTests => \"%d\"." count
 
 let prover = "PROVERBOT"
 (* let synthesizer = ref "" *)

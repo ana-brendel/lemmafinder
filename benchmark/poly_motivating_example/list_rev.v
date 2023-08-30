@@ -18,7 +18,8 @@ Proof.
 intros.
 induction x.
 - reflexivity.
-- simpl. lfind_debug. Admitted.
+- simpl. lfind_debug. 
+Admitted.
 
 (* rewrite rev_append. rewrite IHx. reflexivity.
 Qed. *)

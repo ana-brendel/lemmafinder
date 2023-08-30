@@ -87,7 +87,7 @@ let construct_data_collection (context : LFContext.t) : string =
 let coq_quickchick_prereqs (context : LFContext.t) : string =
   let lfind_state_definition = get_lemma_statement_for_generation context in 
   let file_intro = LFUtils.coq_file_intro context in
-  let quickchick_import = LFUtils.quickchick_imports context in
+  let quickchick_import = LFUtils.quickchick_imports context 50 in
   let lfind_generator_prereqs =  String.concat "\n"
     [file_intro; (lfind_state_definition ^ "\n"); quickchick_import]
   in lfind_generator_prereqs ^ "\n" 

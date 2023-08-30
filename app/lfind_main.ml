@@ -50,7 +50,7 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
         let commands_file = Consts.fmt "%s/lfind_command_log.txt" context.lfind_dir in
 
         let example_file = Consts.fmt "%s/examples_%s.txt" context.lfind_dir context.filename in
-        if not (Sys.file_exists example_file) then 
+        (* if not (Sys.file_exists example_file) then 
         (
           print_endline "Example file not found, generating";
           let op = ExampleGeneration.run context in 
@@ -66,15 +66,18 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
         ); let _ = Utils.run_cmd "export is_lfind=true" in
 
         (* Gather the examples for the proof context *)
-        let examples = ExampleManagement.gather_examples example_file in
+        let examples = ExampleManagement.gather_examples example_file in *)
 
         (* Determine the generalizations *)
         let generalized_variables, generalizations = Generalization.get_generalizations context in 
         LogProgress.generalization context generalized_variables generalizations; clean context;
         Utils.write_to_file commands_file !Consts.commands;
 
+        let _ = Examples.generate context example_file generalized_variables in
+        let examples = Examples.parse example_file in
+
         (* Push the examples through the generalized terms as well -- state is mutated here, adding generalized examples to tables*)
-        let _ = ExampleManagement.get_examples_for_generalizations context generalized_variables examples in (* string error occurs here *)
+        (* let _ = ExampleManagement.get_examples_for_generalizations context generalized_variables examples in  *)
 
         (* Determine which generalizations are valid on their own *)
         let valid, invalid = Validity.check_generalizations context generalizations in
@@ -99,7 +102,7 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
         (* Create the distinct synthesis problems *)
         let synthesis_problems, problem_by_sketch = Synthesis.create_problems context sketches generalized_variables examples in
         LogProgress.synthesis context problem_by_sketch; clean context;
-        Utils.write_to_file commands_file !Consts.commands;
+        Utils.write_to_file commands_file !Consts.commands; 
 
         (* Run each synthesis problem *)
         let synthesizer = BlackBox.get_synthesizer context in
