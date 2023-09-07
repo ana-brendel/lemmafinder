@@ -108,7 +108,7 @@ let update_hole (context : LFContext.t) (generalization : Generalization.t) (hol
           let new_args = (List.map replace_by_original_vars (Array.to_list arr)) in
           Constr.mkCase (case, new_a, new_b, Array.of_list new_args)
         )
-      | Int _ | Float _  -> expr
+      | Int _ | Float _ | Const (_,_) | Construct (_,_) | Sort _ | Rel _ | Meta _ | Ind (_,_) -> expr
       | _ -> print_endline ("Constr = " ^ (LFContext.c_str context expr));
         raise (Failure "Constr match not handled for updating the hole (triggered in Sketch.ml)")
     in let expanded_hole = replace_by_original_vars (EConstr.to_constr context.sigma hole) in
