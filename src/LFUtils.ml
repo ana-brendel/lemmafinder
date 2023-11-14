@@ -14,8 +14,8 @@ let derive_type_properties_quickchick (context : LFContext.t) (typ : EConstr.t) 
   let typ_constr = EConstr.to_constr Evd.empty typ in
   if Constr.isSort(typ_constr) || Constr.isVar(typ_constr) then ""
   else 
-    if not (Constr.isApp(typ_constr)) && not(Constr.isInd(typ_constr)) 
-      then ""
+    if not (Constr.isApp(typ_constr)) && not (Constr.isInd(typ_constr)) && not (Constr.isConst(typ_constr))
+      then (print_endline (LFContext.e_str context typ); "")
     else
       let typ_name = get_type_name context typ in
       let mod_typ_name = List.hd (String.split_on_char ' ' typ_name) in
@@ -36,7 +36,7 @@ let set_nat_as_unknown_type (context : LFContext.t) : string =
 let coq_file_intro (context : LFContext.t) : string =
   let import_file = Consts.fmt "%s\nFrom %s Require Import %s." (Consts.lfind_declare_module) (context.namespace) (context.filename) in
   let module_imports = context.declarations in
-  let lfind__prereqs = String.concat "\n" [Consts.lfind_declare_module; import_file; module_imports]
+  let lfind__prereqs = String.concat "\n" [Consts.lfind_declare_module; module_imports; Consts.quickchick_import;  import_file]
   in lfind__prereqs ^ "\n"
 
 let quickchick_imports (context : LFContext.t) : string =
@@ -47,7 +47,7 @@ let quickchick_imports (context : LFContext.t) : string =
   let type_derivations = String.concat "\n\n" (Utils.remove_duplicates String.equal typ_dev_list) in
   let setting_unknown_types = set_nat_as_unknown_type context in
   let lfind_generator_prereqs =  String.concat "\n"
-    [quickchick_import; qc_include; Consts.def_qc_num_examples; type_derivations; setting_unknown_types]
+    [quickchick_import; qc_include; Consts.def_qc_num_examples; setting_unknown_types; type_derivations]
   in lfind_generator_prereqs ^ "\n"
 
 let replace_subterm_econstr (context : LFContext.t) (goal : EConstr.t) (subterm : EConstr.t) (fill : EConstr.t) : EConstr.t =
@@ -112,3 +112,19 @@ let filter_split (check : 'a -> bool) (lst : 'a list) : ('a list * 'a list) =
     | true -> iter (h :: tlist) flist remaining
     | false -> iter tlist (h :: flist) remaining
   in iter [] [] lst
+
+let contains_string (context : LFContext.t) (expr : EConstr.t) (str : string) : bool =
+  let expr_str = LFContext.e_str context expr in
+  let rec iterate e s =
+    if (s = String.length str) then true
+    else (
+      if (e = String.length expr_str) then false
+      else (
+        let e_char = String.get expr_str e in
+        let s_char = String.get str s in
+        match (Char.equal e_char s_char) with
+        | true -> iterate (e+1) (s+1)
+        | false -> iterate (e+1) s
+        )
+      ) in iterate 0 0
+    

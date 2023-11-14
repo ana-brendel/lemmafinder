@@ -1,5 +1,5 @@
 let parse_example (example : string) : (string, string) Hashtbl.t = 
-  let split_by_variable = String.split_on_char '|' example in
+  let split_by_variable = String.split_on_char '`' example in
   let example_table = Hashtbl.create (List.length split_by_variable) in
   List.iter 
   (fun ex -> 

@@ -68,7 +68,7 @@ let get_terms (env : Environ.env) (sigma : Evd.evar_map) (econstrs : EConstr.t l
 
 let get_variables (env : Environ.env) (sigma : Evd.evar_map) (terms : (string, (EConstr.t * EConstr.t)) Hashtbl.t) 
 (econstrs : EConstr.t list)  : (string, (EConstr.t * Names.variable * EConstr.t)) Hashtbl.t = 
-  let varIds = List.flatten (List.map (fun e -> LFCoq.vars_from_constr env sigma [] (EConstr.to_constr sigma e)) econstrs) in
+  let varIds = List.flatten (List.map (fun e -> LFCoq.vars_from_constr env sigma (Hashtbl.create 0) [] (EConstr.to_constr sigma e)) econstrs) in
   let eq_vars (a : Names.variable) (b : Names.variable) : bool =
     String.equal (Names.Id.to_string a) (Names.Id.to_string b) in
   let vars_simplified = Utils.remove_duplicates eq_vars varIds in
@@ -96,9 +96,12 @@ let get_functions (env : Environ.env) (sigma : Evd.evar_map) (econstrs : EConstr
 
 let get_types (env) (sigma) (econstrs) (functions) : (string, EConstr.t * bool) Hashtbl.t =
   let typs = List.flatten (List.map (fun e -> LFCoq.types_in_econstr env sigma [] e) econstrs) in
+  let terms = List.fold_left (LFCoq.terms_in_econstr env sigma) [] econstrs in
   let econstr_str = LFCoq.string_of_econstr env sigma in
+  let from_terms = List.filter (fun (_,typ) -> ((String.equal "Set" (econstr_str typ)) or (String.equal "Type" (econstr_str typ)))) 
+  terms |> List.map (fun (term,_) -> term) in
   let eq_typs (a : EConstr.t) (b : EConstr.t) : bool = String.equal (econstr_str a) (econstr_str b) in
-  let typs_simplified = Utils.remove_duplicates eq_typs typs in
+  let typs_simplified = Utils.remove_duplicates eq_typs (typs @ from_terms) in
   let result = Hashtbl.create (List.length typs_simplified) in
   List.iter 
   (

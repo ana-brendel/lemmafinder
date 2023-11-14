@@ -42,7 +42,7 @@ let parse_output (output : string list) : string option=
 
 let econstr_term (context : LFContext.t) (example : (string, string) Hashtbl.t) (expr : EConstr.t) : string option = 
   let expr_string = LFContext.e_str context expr in
-  let variables_in_expr = LFCoq.vars_from_constr context.env context.sigma [] (EConstr.to_constr context.sigma expr) in
+  let variables_in_expr = LFCoq.vars_from_constr context.env context.sigma context.variables [] (EConstr.to_constr context.sigma expr) in
   let variables_in_expr_str = List.map Names.Id.to_string variables_in_expr in
   let non_types = List.filter (fun v -> (Hashtbl.mem context.types v) = false) variables_in_expr_str in
   let args_str = String.concat " " (List.map
@@ -59,7 +59,7 @@ let econstr_term (context : LFContext.t) (example : (string, string) Hashtbl.t) 
 let econstr_term_with_vars (context : LFContext.t) (variables : (string, Evd.econstr * Names.variable * Evd.econstr) Hashtbl.t) 
 (example : (string, string) Hashtbl.t) (expr : EConstr.t) : string option = 
   let expr_string = LFContext.e_str context expr in
-  let variables_in_expr = LFCoq.vars_from_constr context.env context.sigma [] (EConstr.to_constr context.sigma expr) in
+  let variables_in_expr = LFCoq.vars_from_constr context.env context.sigma context.variables [] (EConstr.to_constr context.sigma expr) in
   let variables_in_expr_str = List.map Names.Id.to_string variables_in_expr in
   let non_types = List.filter (fun v -> (Hashtbl.mem context.types v) = false) variables_in_expr_str in
   let args_str = String.concat " " (List.map

@@ -148,14 +148,18 @@ let rec func_in_econstr (env : Environ.env) (sigma : Evd.evar_map) (func_type_te
       iteratively defined (such as LetIn or Lambda)) *)
   | _ -> func_type_terms
 
-let rec vars_from_constr (env : Environ.env) (sigma : Evd.evar_map) (vars : Names.variable list) 
-(constr : Constr.t) : Names.variable list =
+let rec vars_from_constr (env : Environ.env) (sigma : Evd.evar_map) 
+(context_vars : (string, Evd.econstr * Names.variable * Evd.econstr) Hashtbl.t)
+(vars : Names.variable list) (constr : Constr.t) : Names.variable list =
+  let recursive_call = vars_from_constr env sigma context_vars in
+  let is_variable x = Hashtbl.find_opt context_vars (string_of_constr env sigma x) in
   let result = match Constr.kind constr with
   | Var id -> id :: vars
-  | App (func, args) -> List.fold_left (vars_from_constr env sigma) vars (Array.to_list args)
-  | Prod (_,hypo,result) -> List.fold_left (vars_from_constr env sigma) vars (hypo :: [result])
-  | Lambda (ids,inp,body) -> List.fold_left (vars_from_constr env sigma) vars (inp :: [body])
-  | LetIn (ids,inp,assignment,expr) -> List.fold_left (vars_from_constr env sigma) vars (inp :: [assignment;expr])
+  | App (func, args) -> (let values = List.fold_left recursive_call vars (Array.to_list args) in
+    match (is_variable func) with | None -> values | Some (_,id,_) -> id :: values)
+  | Prod (_,hypo,result) -> List.fold_left recursive_call vars (hypo :: [result])
+  | Lambda (ids,inp,body) -> List.fold_left recursive_call vars (inp :: [body])
+  | LetIn (ids,inp,assignment,expr) -> List.fold_left recursive_call vars (inp :: [assignment;expr])
   | _ -> (*print_endline ("Variables parsing undefined passed here: " ^ string_of_constr env sigma constr);*) vars
   in Utils.remove_duplicates (fun x y -> String.equal (Names.Id.to_string x) (Names.Id.to_string y)) result
 

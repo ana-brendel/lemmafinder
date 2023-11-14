@@ -26,6 +26,10 @@ let gather_counterexamples (output : string list) : string list =
   ([],false) output 
   in strings
 
+let cleanup (directory : string) (file : string) : unit =
+  let filename = String.split_on_char '.' file |> List.hd in
+  let _ = Utils.run_cmd ("rm -rf " ^ directory ^ "/" ^ filename ^"*") in ()
+
 let check_generalization (context : LFContext.t) (generalization : Generalization.t) : bool * string list =
   let file = Generalization.quickchick context generalization in
   let cmd = Consts.fmt "cd %s/ && coqc -R . %s %s" context.lfind_dir context.namespace file in
@@ -33,9 +37,9 @@ let check_generalization (context : LFContext.t) (generalization : Generalizatio
   let valid = List.fold_left (fun acc l -> acc || (Utils.contains l "Passed") ) false output in
   let counterexample = List.fold_left (fun acc l -> acc || (Utils.contains l "Failed") ) false output in
   if valid 
-  then true, []
+  then (cleanup context.lfind_dir file; true, [])
   else 
-    if counterexample then false, (gather_counterexamples output)
+    if counterexample then (cleanup context.lfind_dir file; false, (gather_counterexamples output))
     else 
       (
         print_endline ("Quickchick failed to run when compiling: "^file^" \nOutput:\n" ^(String.concat "\n" output));
@@ -84,6 +88,8 @@ let check_hypotheses (context : LFContext.t) (generalization : Generalization.t)
     if Hashtbl.mem context.types (LFContext.e_str context hypo)
     then false
     else
+      if (LFUtils.contains_string context hypo "forall") then false
+      else
       (
         let sub_expr = evaluate_example hypo context generalization in
         if String.equal "" sub_expr 

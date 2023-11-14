@@ -99,15 +99,14 @@ let generalize_set_of_terms (context : LFContext.t) (generalized : (string, Evd.
     if (Utils.contains (LFContext.e_str context g) term)
     then 
       (
-        try 
-          let (typ,var,econstr) = Hashtbl.find generalized var_str in 
-          let (update_goal, update_hyps) = generalize_single_term context g hyps typ econstr var in
-          generalize update_goal update_hyps remaining
-        with _ -> raise (Failure (Consts.fmt "2. Generalized variable [%s] not recorded/found (triggered in Generalization.ml)" var_str))
+        let (typ,var,econstr) = try Hashtbl.find generalized var_str
+        with _ -> raise (Failure (Consts.fmt "2. Generalized variable [%s] not recorded/found (triggered in Generalization.ml)" var_str)) in 
+        let (update_goal, update_hyps) = generalize_single_term context g hyps typ econstr var in
+        generalize update_goal update_hyps remaining
       )
     else (generalize g hyps remaining)
   in let goal, hypotheses = generalize generalized_goal generalized_hyps var_x_term_to_generalize in
-  let varIds =  LFCoq.vars_from_constr context.env context.sigma [] (EConstr.to_constr context.sigma goal) in
+  let varIds =  LFCoq.vars_from_constr context.env context.sigma context.variables [] (EConstr.to_constr context.sigma goal) in
   let variables = Hashtbl.create (List.length varIds) in
   List.iter 
   (
