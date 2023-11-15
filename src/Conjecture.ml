@@ -14,7 +14,7 @@ let rec get_body (context : LFContext.t) (lemma : EConstr.t) : string =
   | Prod (_,hypo,result) -> (
     let h_str = get_body context (EConstr.of_constr hypo) in
     let r_str = get_body context (EConstr.of_constr result) in
-    "not (" ^ h_str ^ ") \\/ (" ^ r_str ^ ")"
+    h_str ^ " -> " ^ r_str
     )
   | _ -> LFContext.e_str context lemma
 

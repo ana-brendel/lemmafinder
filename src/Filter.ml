@@ -119,6 +119,7 @@ let filtering (context : LFContext.t) (lemmas : Conjecture.t list) : Conjecture.
   let filtered_by_syntactic_equivalence = remove_duplicate_conj context remove_goal in
   (* Filter invalid lemmas via QuickChick *)
   let filtered_by_quickchick = List.filter (fun x -> fst (check_conjecture_with_quickchick context x)) filtered_by_syntactic_equivalence in
+  (* let filtered_by_quickchick =  filtered_by_syntactic_equivalence in *)
   (* Filter out lemmas using script from original algorithm *)
   let filtered_by_script = filter_lemmas context (List.sort (fun a b-> (lemma_length b) - (lemma_length a)) filtered_by_quickchick) in 
   filtered_by_script, (List.length filtered_by_syntactic_equivalence, List.length filtered_by_quickchick)

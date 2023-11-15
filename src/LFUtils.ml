@@ -44,7 +44,8 @@ let quickchick_imports (context : LFContext.t) : string =
   let qc_include = Consts.fmt ("QCInclude \"%s/\".\nQCInclude \".\".") context.lfind_dir in
   (* NOTE : should look out for bugs here, when the type properties need to be automatically generated *)
   let typ_dev_list = List.map (derive_type_properties_quickchick context) (Hashtbl.fold (fun _ (y,_) accum -> y :: accum) context.types []) in
-  let type_derivations = String.concat "\n\n" (Utils.remove_duplicates String.equal typ_dev_list) in
+  (* let type_derivations = String.concat "\n\n" (Utils.remove_duplicates String.equal typ_dev_list) in *)
+  let type_derivations = "Require Import decide." in
   let setting_unknown_types = set_nat_as_unknown_type context in
   let lfind_generator_prereqs =  String.concat "\n"
     [quickchick_import; qc_include; Consts.def_qc_num_examples; setting_unknown_types; type_derivations]

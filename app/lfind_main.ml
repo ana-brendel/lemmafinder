@@ -46,11 +46,15 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
         let context = LFContext.get gl in
         LogProgress.context context;
         let commands_file = Consts.fmt "%s/lfind_command_log.txt" context.lfind_dir in
+        Consts.decidable := Sys.file_exists (Consts.fmt "%s/decide.v" context.lfind_dir);
+        (* Makes sure the instances of decidability, show and arbitrary are compiled *)
+        let _ = if (!Consts.decidable) then 
+          (Utils.run_cmd (Consts.fmt "cd %s/ && coqc -R . %s %s" context.lfind_dir context.namespace "decide.v")) else [] in
 
         let example_file = Consts.fmt "%s/examples_%s.txt" context.lfind_dir context.filename in
-        if not (Sys.file_exists example_file) then 
+        if (not (Sys.file_exists example_file) & !Consts.decidable) then 
         (
-          print_endline "Example file not found, generating";
+          print_endline "Example file not found and decidable, so generating examples for synthesis";
           let op = ExampleGeneration.run context in 
           (* 1st check that Quickchick was able to run without error *)
           let ran_successfully = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
@@ -61,10 +65,10 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
           if not ran_successfully then raise (Invalid_Examples "Quickchick failed to run successfully") else 
           (* if not quickchick_success then raise (Invalid_Examples "Current proof state incorrect (without hypotheses or in general)") else  *)
           Feedback.msg_info (Pp.str "lemmafinder_example_generation_success")
-        ); let _ = Utils.run_cmd "export is_lfind=true" in
+        ); let _ = Utils.run_cmd "export is_lfind=true" in 
 
         (* Gather the examples for the proof context *)
-        let examples = ExampleManagement.gather_examples example_file in
+        let examples = if (Sys.file_exists example_file) then ExampleManagement.gather_examples example_file else [] in
 
         (* Determine the generalizations *)
         let generalized_variables, generalizations = Generalization.get_generalizations context in 
