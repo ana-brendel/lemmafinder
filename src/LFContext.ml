@@ -189,3 +189,20 @@ let get_goal_subterms (c : t) : EConstr.t list =
   let goal_terms = get_terms c.env c.sigma [c.goal] in
   let econstrs = Hashtbl.fold (fun _ (term,_) acc -> term :: acc) goal_terms [] in
   List.sort (fun a b -> (String.length (e_str c b)) - (String.length (e_str c a))) econstrs
+
+let rec pretty_print_econstr (context : t) (lemma : EConstr.t) : string =
+  match Constr.kind (EConstr.to_constr context.sigma lemma) with
+  | Prod (_,hypo,result) -> (
+    let h_str = pretty_print_econstr context (EConstr.of_constr hypo) in
+    let r_str = pretty_print_econstr context (EConstr.of_constr result) in
+    h_str ^ " -> " ^ r_str
+    )
+  | _ -> e_str context lemma
+
+let table_of_variables_from_econstr (context : t) (existing_variables : (string, Evd.econstr * Names.variable * Evd.econstr) Hashtbl.t) 
+(e : EConstr.t) : (string, Evd.econstr * Names.variable * Evd.econstr) Hashtbl.t =
+    let c_hyp = EConstr.to_constr context.sigma e in
+    let var_list = LFCoq.vars_from_constr context.env context.sigma existing_variables [] c_hyp in
+    let variables = Hashtbl.create (List.length var_list) in 
+    List.iter (fun v -> try Hashtbl.add variables v (Hashtbl.find existing_variables v) with _ -> ()) (List.map Names.Id.to_string var_list);
+    variables

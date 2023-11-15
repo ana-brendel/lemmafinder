@@ -9,14 +9,14 @@ type t =
 let equal (context : LFContext.t) (a : t) (b : t) : bool =
   String.equal (LFContext.e_str context a.lemma) (LFContext.e_str context b.lemma)
 
-let rec get_body (context : LFContext.t) (lemma : EConstr.t) : string =
+(* let rec get_body (context : LFContext.t) (lemma : EConstr.t) : string =
   match Constr.kind (EConstr.to_constr context.sigma lemma) with
   | Prod (_,hypo,result) -> (
     let h_str = get_body context (EConstr.of_constr hypo) in
     let r_str = get_body context (EConstr.of_constr result) in
     h_str ^ " -> " ^ r_str
     )
-  | _ -> LFContext.e_str context lemma
+  | _ -> LFContext.e_str context lemma *)
 
 let get_pretty_print_for_filter_script (context : LFContext.t) (conj : t) : string =
   let lemma_intro = if (Hashtbl.length conj.variables = 0)  then conj.label ^ ": " else conj.label ^ ": forall " in
@@ -32,9 +32,9 @@ let get_pretty_print_for_filter_script (context : LFContext.t) (conj : t) : stri
   let variables_str = String.concat " " (List.filter (fun x -> String.equal "" x = false) variables_strings) in
   let all_variables_string = !implicit_types ^ variables_str in
   let formated_variables = if (String.equal "" all_variables_string) then "" else (all_variables_string ^ ", ") in
-  let body = get_body context conj.lemma in
+  let body = LFContext.pretty_print_econstr context conj.lemma in
   let str = lemma_intro ^ formated_variables ^ body in
-  String.concat " " (String.split_on_char '\n' str)
+  String.concat " " (String.split_on_char '\n' str) 
 
 let get_pretty_print (context : LFContext.t) (result : t) : string = 
   "Lemma " ^ (get_pretty_print_for_filter_script context result) ^ "."

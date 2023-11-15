@@ -1,3 +1,25 @@
+let format_evaluated_hypothesis (e_hyp : EConstr.t) (context : LFContext.t) 
+(g_variables : (string, Evd.econstr * Names.variable * Evd.econstr) Hashtbl.t) : string =
+  let combined_variables = Hashtbl.copy g_variables in 
+  Hashtbl.iter (fun x y -> if (Hashtbl.mem combined_variables x) then () else (Hashtbl.add combined_variables x y)) context.variables;
+  let variables = LFContext.table_of_variables_from_econstr context combined_variables e_hyp in
+  let lemma_intro = if (Hashtbl.length variables = 0)  then "generalized_hypothesis : " else "generalized_hypothesis : forall " in
+  let implicit_types = ref "" in
+  let variables_strings = 
+  Hashtbl.fold
+  (
+    fun var_str (typ,_,_) accum ->
+      if (Constr.is_Type (EConstr.to_constr context.sigma typ) || Constr.is_Set (EConstr.to_constr context.sigma typ))
+      then (implicit_types := !implicit_types ^ "{" ^ var_str ^ "} "; accum) 
+      else accum @ [("(" ^ var_str ^ " : " ^ (LFContext.e_str context typ) ^ ")")]
+  ) variables [] in 
+  let variables_str = String.concat " " (List.filter (fun x -> String.equal "" x = false) variables_strings) in
+  let all_variables_string = !implicit_types ^ variables_str in
+  let formated_variables = if (String.equal "" all_variables_string) then "" else (all_variables_string ^ ", ") in
+  let body = LFContext.pretty_print_econstr context e_hyp in
+  let str = lemma_intro ^ formated_variables ^ body in
+  String.concat " " (String.split_on_char '\n' str)
+
 let evaluate_example (hyp : EConstr.t) (context : LFContext.t) (generalization : Generalization.t) : string =
   try
     let hyp_replace = 
@@ -5,8 +27,8 @@ let evaluate_example (hyp : EConstr.t) (context : LFContext.t) (generalization :
       (fun var value expr -> ExampleManagement.replace_var_with_value context var value expr)
       (List.hd generalization.counterexamples) 
       hyp in
-    let hyp_str_replace = LFContext.e_str context hyp_replace in
-    (Consts.fmt "Definition generalized_hypothesis : %s." hyp_str_replace)
+    let hyp_str_replace = format_evaluated_hypothesis hyp_replace context generalization.variables in
+    (Consts.fmt "Definition %s." hyp_str_replace)
   with _ -> raise (Failure "Error evaluating hypotheses with counterexample triggered in Validity.ml")
 
 (* assumes a counter example is returned --> copied from original lfind*)
@@ -103,22 +125,6 @@ let check_hypotheses (context : LFContext.t) (generalization : Generalization.t)
       ) in 
   LFUtils.filter_split check_hypothesis hypotheses (* was just a List.filter*)
 
-(* let add_implications (context : LFContext.t) (generalizations : Generalization.t list) : Generalization.t list =
-  let per_generalization (generalization : Generalization.t) =
-    let required_hypotheses = check_hypotheses context generalization in
-    let conjunction_of_hyps = LFCoq.conjoin_props context.sigma required_hypotheses in
-    match conjunction_of_hyps with
-    | None -> [generalization]
-    | Some antecedent -> let empty_binding = Context.anonR in
-      let new_goal = Constr.mkProd (empty_binding, antecedent, (EConstr.to_constr context.sigma generalization.goal)) in
-      [
-        {generalization with 
-          goal = (EConstr.of_constr new_goal); 
-          label = generalization.label ^ "_imp"}; 
-        generalization
-      ]
-  in List.flatten (List.map per_generalization generalizations) *)
-
 let add_implications (context : LFContext.t) (generalizations : Generalization.t list) : Generalization.t list =
   let per_generalization (generalization : Generalization.t) =
     let updated = ref false in
@@ -131,11 +137,14 @@ let add_implications (context : LFContext.t) (generalizations : Generalization.t
       | None -> g
       | Some antecedent -> updated := true;
         let impl = LFCoq.create_implication antecedent (EConstr.to_constr context.sigma g.goal) in
-        let updated_gen = {g with goal = (EConstr.of_constr impl); label = updated_label} in
+        let combined_variables = Hashtbl.copy g.variables in
+        Hashtbl.iter (fun x y -> if (Hashtbl.mem combined_variables x) then () else (Hashtbl.add combined_variables x y)) context.variables;
+        let updated_variables = LFContext.table_of_variables_from_econstr context combined_variables (EConstr.of_constr impl) in
+        let updated_gen = {g with goal = (EConstr.of_constr impl); label = updated_label; variables = updated_variables} in
         let valid, invalid = check_generalizations context [updated_gen] in
         match invalid with
         | [] -> updated_gen
         | h :: t -> iterate h remaining_hyps in
-      let result = iterate generalization hyps in
+      let result = iterate generalization hyps in 
       if !updated then [generalization;result] else [result]
   in List.flatten (List.map per_generalization generalizations) 

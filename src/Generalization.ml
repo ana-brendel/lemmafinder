@@ -33,7 +33,7 @@ let pp (context : LFContext.t) (generalization : t) : string =
       | _ -> ("(" ^ var_str ^ " : " ^ var_type ^ ")") :: acc
   ) generalization.variables [] in 
   let variables_str = String.concat " " variables_strings in
-  let body = LFContext.e_str context generalization.goal in
+  let body = LFContext.pretty_print_econstr context generalization.goal in
   lemma_intro ^ !implicit_types ^ variables_str ^ ", " ^ body ^ "."
 
 let quickchick (context : LFContext.t) (g : t) : string =
