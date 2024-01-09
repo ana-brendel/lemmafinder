@@ -45,6 +45,13 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
         Utils.env_setup ();
         let context = LFContext.get gl in
         LogProgress.context context;
+
+        if (List.length (LFContext.non_type_variables context ) = 0) 
+        then (
+          print_endline "No variables in goal state, stopping LFind execution.";
+          LogProgress.no_variables_abort_message context; exit(0);
+        ) else();
+        
         let commands_file = Consts.fmt "%s/lfind_command_log.txt" context.lfind_dir in
         Consts.decidable := Sys.file_exists (Consts.fmt "%s/decide.v" context.lfind_dir);
         (* Makes sure the instances of decidability, show and arbitrary are compiled *)
@@ -79,17 +86,17 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
         let _ = ExampleManagement.get_examples_for_generalizations context generalized_variables examples in (* string error occurs here *)
 
         (* Determine which generalizations are valid on their own *)
-        let valid, invalid = Validity.check_generalizations context generalizations in
+        let valid, invalid = if (!Consts.decidable) then Validity.check_generalizations context generalizations else [],generalizations in
         LogProgress.vaidity_check context valid invalid; clean context;
         Utils.write_to_file commands_file !Consts.commands;
 
         (* Add implications to lemmas that were invalid *)
-        let updated_invalid = Validity.add_implications context invalid in  
+        let updated_invalid = if (!Consts.decidable) then Validity.add_implications context invalid else invalid in  
         LogProgress.implications context updated_invalid; clean context;
         Utils.write_to_file commands_file !Consts.commands;
 
         (* Again, determine if the implications are invalid or not *)
-        let valid_implications, invalid_still = Validity.check_generalizations context updated_invalid in
+        let valid_implications, invalid_still = if (!Consts.decidable) then Validity.check_generalizations context updated_invalid else [], updated_invalid in
         LogProgress.vaidity_check context valid_implications invalid_still; clean context;
 
         (* Create the different synthesis problems *)
@@ -127,7 +134,14 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
         let (category_one,category_two,category_three) = Ranking.rank context filtered_candidate_lemmas in 
         let are_provable = List.filter (fun (x : Conjecture.t) -> x.provable) category_three in
         let not_provable = List.filter (fun (x : Conjecture.t) -> x.provable = false) category_three in
+        (* Error with ranking so not looking at the right now *)
+        (* let (category_one,category_two,are_provable,not_provable) = ([],[],[],filtered_candidate_lemmas) in *)
         clean context;
+
+        (* If we not run QuickChick, so !Consts.decidable is false, 
+           we don't want to include it if not provable (to not risk adding invalid suggetsions) *)
+        let category_two = if (!Consts.decidable) then category_two else [] in
+        let not_provable = if (!Consts.decidable) then not_provable else [] in
 
         (* Summarize results for user *)
         let completed_at = int_of_float(Unix.time ()) in
@@ -140,6 +154,7 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
           [
             "LFind Results"; 
             (Consts.fmt "LFind Directory: %s" context.lfind_dir);
+            (if (!Consts.decidable) then "" else "\nDecidability proof NOT provided, so results are limited");
             (Consts.fmt "\nNumber of Lemmas: %d" (List.length candidate_lemmas));
             (Consts.fmt "Number of Lemmas (after duplicates removed): %d" duplicates);
             (Consts.fmt "Number of Lemmas (after QuickChick used to filter): %d" quickchick_filtered);
@@ -153,12 +168,14 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
             List.fold_left (fun acc x -> acc ^ "\n" ^ (Conjecture.get_pretty_print context x)) "" category_two;
             "\nCategory 3 (provable):";Consts.fmt "Count = %d" (List.length are_provable); 
             List.fold_left (fun acc x -> acc ^ "\n" ^ (Conjecture.get_pretty_print context x)) "" are_provable;
+            (* "\n\nAll lemmas here because ranking is turned off right now..."; *)
             "\nCategory 3 (not provable):";Consts.fmt "Count = %d" (List.length not_provable); 
             List.fold_left (fun acc x -> acc ^ "\n" ^ (Conjecture.get_pretty_print context x)) "" not_provable;
           ] 
         in Utils.write_to_file summary_file results;
         let top_lemmas = print_results context (category_one @ category_two @ are_provable @ not_provable) in
-        let msg = "LFIND Successful.\n" ^ top_lemmas ^  "\nResults of LFIND at: " ^ summary_file ^ 
+        let decide_provided = if (!Consts.decidable) then "" else "Decidability proof not provided, so results limited.\n" in
+        let msg = "LFIND Successful.\n" ^ decide_provided ^ top_lemmas ^  "\nResults of LFIND at: " ^ summary_file ^ 
         "\nAlgorithm Progress of LFIND at: " ^ algorithm_log ^ "\nCommands ran listed at: " ^ commands_file in
         Tacticals.New.tclZEROMSG (Pp.str msg)
       end

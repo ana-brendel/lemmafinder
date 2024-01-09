@@ -128,7 +128,9 @@ let check_hypotheses (context : LFContext.t) (generalization : Generalization.t)
 let add_implications (context : LFContext.t) (generalizations : Generalization.t list) : Generalization.t list =
   let per_generalization (generalization : Generalization.t) =
     let updated = ref false in
-    let hyps = (List.map (fun hyp -> match hyp with Context.Named.Declaration.LocalAssum(_,y) -> y) generalization.hypotheses) in
+    (* fails to match on some cases -- need to investigate TODO *)
+    let filtered_hyps = (List.filter (fun hyp -> try match hyp with Context.Named.Declaration.LocalAssum(_,y) -> true with _-> false) generalization.hypotheses) in
+    let hyps = (List.map (fun hyp -> match hyp with Context.Named.Declaration.LocalAssum(_,y) -> y) filtered_hyps) in
     let updated_label = generalization.label ^ "_imp" in
     let rec iterate (g : Generalization.t) (updated_hyps : EConstr.t list) = 
       let required_hypotheses, remaining_hyps = check_hypotheses context g updated_hyps in

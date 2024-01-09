@@ -10,7 +10,7 @@ let get_type_name (context : LFContext.t) (typ : EConstr.t) : string =
       | _ -> raise (Failure "Found polymorphic typ that is not polymorphic (causing error in LFUtils.ml)")
   with _ -> raise (Failure "Getting type name for a type that was not recorded (causing error in LFUtils.ml)")
 
-let derive_type_properties_quickchick (context : LFContext.t) (typ : EConstr.t) : string= 
+(* let derive_type_properties_quickchick (context : LFContext.t) (typ : EConstr.t) : string= 
   let typ_constr = EConstr.to_constr Evd.empty typ in
   if Constr.isSort(typ_constr) || Constr.isVar(typ_constr) then ""
   else 
@@ -26,7 +26,7 @@ let derive_type_properties_quickchick (context : LFContext.t) (typ : EConstr.t) 
         ("Derive Show for %s.\n
         Derive Arbitrary for %s.\n
         Instance Dec_Eq_%s : Dec_Eq %s.\n
-        Proof. dec_eq. Qed.\n") mod_typ_name mod_typ_name mod_typ_name (LFContext.e_str context typ)
+        Proof. dec_eq. Qed.\n") mod_typ_name mod_typ_name mod_typ_name (LFContext.e_str context typ) *)
 
 let set_nat_as_unknown_type (context : LFContext.t) : string =
   let unknown_type_var = List.filter (Hashtbl.mem context.types) (List.map Names.Id.to_string (LFContext.get_variable_list context)) in
@@ -43,7 +43,7 @@ let quickchick_imports (context : LFContext.t) : string =
   let quickchick_import = Consts.quickchick_import in
   let qc_include = Consts.fmt ("QCInclude \"%s/\".\nQCInclude \".\".") context.lfind_dir in
   (* NOTE : should look out for bugs here, when the type properties need to be automatically generated *)
-  let typ_dev_list = List.map (derive_type_properties_quickchick context) (Hashtbl.fold (fun _ (y,_) accum -> y :: accum) context.types []) in
+  (* let typ_dev_list = List.map (derive_type_properties_quickchick context) (Hashtbl.fold (fun _ (y,_) accum -> y :: accum) context.types []) in *)
   (* let type_derivations = String.concat "\n\n" (Utils.remove_duplicates String.equal typ_dev_list) in *)
   let type_derivations = "Require Import decide." in
   let setting_unknown_types = set_nat_as_unknown_type context in

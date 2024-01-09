@@ -7,6 +7,9 @@ let time_elapsed () : string = Consts.fmt "Time elapsed: %d seconds" ((int_of_fl
 let context (context : LFContext.t) : unit = 
   Consts.progress := !Consts.progress ^ (LFContext.pp_context context); write_to_log context 
 
+let no_variables_abort_message (context : LFContext.t) : unit = 
+  Consts.progress := !Consts.progress ^ ("\n\nGoal state includes no variables. No need to run lfind."); write_to_log context 
+
 let generalization context generalized_variables generalizations : unit =
   let e_str = LFContext.e_str context in
   Consts.progress := !Consts.progress ^ ("\n\n<---GENERALIZATION--->\n"^time_elapsed ()^"\nGeneralized Variables:");

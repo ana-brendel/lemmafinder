@@ -43,11 +43,11 @@ let quickchick (context : LFContext.t) (g : t) : string =
 let equal (context : LFContext.t) (g1 : t) (g2 : t) : bool =
   let goals_equal = String.equal (LFContext.e_str context (g1.goal)) (LFContext.e_str context (g2.goal)) in
   let check_hyps_equal = 
-    (fun h1 h2 -> 
+    (fun h1 h2 -> try (* fails to match on some cases -- need to investigate TODO *)
       let (v1, e1) = match h1 with Context.Named.Declaration.LocalAssum(x,y) -> (Context.(x.binder_name), y) in
       let (v2, e2) = match h2 with Context.Named.Declaration.LocalAssum(x,y) -> (Context.(x.binder_name), y) in
       String.equal (LFContext.e_str context e1) (LFContext.e_str context e2)
-      && Names.Id.equal v1 v2) in
+      && Names.Id.equal v1 v2 with _ -> false ) in
   let hyps_equal = List.length g1.hypotheses == List.length g2.hypotheses &&
     List.fold_left (&&) true (List.map2 check_hyps_equal g1.hypotheses g2.hypotheses) in
   goals_equal
@@ -62,9 +62,11 @@ let generalize_hypotheses (context : LFContext.t) (hypotheses : EConstr.named_co
   let rec iterate_hyps = function
   | [] -> []
   | h :: t -> 
+    try (* fails to match on some cases -- need to investigate TODO *)
     let bind,econstr = match h with Context.Named.Declaration.LocalAssum(x,y) -> (x, y) in
     let updated_econstr = generalize_with_variable context econstr term var in
     (Context.Named.Declaration.of_tuple (bind,None,updated_econstr)) :: iterate_hyps t
+    with _ -> iterate_hyps t
   in new_hyp_for_var :: iterate_hyps hypotheses
 
 let generalize_single_term (context : LFContext.t) (goal : EConstr.t) (hyps : EConstr.named_context)
