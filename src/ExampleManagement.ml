@@ -68,3 +68,12 @@ let get_examples_for_generalizations (context : LFContext.t)
 (generalized_variables : (string, Evd.econstr * Names.variable * Evd.econstr) Hashtbl.t) 
 (coq_examples : (string, string) Hashtbl.t list) : (string, string) Hashtbl.t list =
   List.iter (evaluate_example context generalized_variables) coq_examples; coq_examples
+
+let gather_filtered_examples (context : LFContext.t) (example_file : string) : ((string, string) Hashtbl.t) list =
+  let examples = gather_examples example_file in
+  let check_example ex =
+    let result =  Evaluate.econstr_term context ex (context.goal) in
+    match result with
+    | None -> false
+    | Some expr -> Evaluate.evaluate_string context expr in
+  List.filter check_example examples 

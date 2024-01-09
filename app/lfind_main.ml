@@ -58,13 +58,21 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
           (* Quickchick failure message that is printed: *** Failed after _ tests and _ shrinks. *)
           in let quickchick_success = List.fold_left (fun acc l -> acc || (Utils.contains l "+++ Passed 50 tests") ) false op
           in quickchick_passed := quickchick_success;
-          if not ran_successfully then raise (Invalid_Examples "Quickchick failed to run successfully") else 
-          (* if not quickchick_success then raise (Invalid_Examples "Current proof state incorrect (without hypotheses or in general)") else  *)
-          Feedback.msg_info (Pp.str "lemmafinder_example_generation_success")
+          if not ran_successfully then raise (Invalid_Examples "Quickchick failed to run successfully (initial)") else 
+          if quickchick_success then Feedback.msg_info (Pp.str "lemmafinder_example_generation_success") else 
+          (
+            let op2 = ExampleGeneration.generate_values context in
+            let ran_successfully2 = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op2
+            in let quickchick_success2 = List.fold_left (fun acc l -> acc || (Utils.contains l "+++ Passed") ) false op2
+            in if (ran_successfully2 && quickchick_success2) then Feedback.msg_info (Pp.str "lemmafinder_example_generation_success") 
+            else raise (Invalid_Examples "Quickchick failed to run successfully (while proof state is incorrect independently)")
+          )
         ); let _ = Utils.run_cmd "export is_lfind=true" in
 
         (* Gather the examples for the proof context *)
-        let examples = ExampleManagement.gather_examples example_file in
+        let examples = match !quickchick_passed with
+        | true -> ExampleManagement.gather_examples example_file 
+        | false -> ExampleManagement.gather_filtered_examples context example_file in 
 
         (* Determine the generalizations *)
         let generalized_variables, generalizations = Generalization.get_generalizations context in 
