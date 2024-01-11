@@ -85,7 +85,9 @@ let pp_goal_for_prover (context : LFContext.t) : string =
     | Context.Named.Declaration.LocalAssum(x, y) -> 
       let (sigma', s) = Typing.sort_of context.env context.sigma y in
       if (keep_hyps || Sorts.is_set s || is_type s) then Some (x.binder_name, y) else None
-    | _ -> raise(Failure "Unsupported assumption")
+    | Context.Named.Declaration.LocalDef(x, _, y) -> (* NOT SURE IF THIS IS CORRECT BEHAVIOR *)
+      let (sigma', s) = Typing.sort_of context.env context.sigma y in
+      if (keep_hyps || Sorts.is_set s || is_type s) then Some (x.binder_name, y) else None
     ) context.hypotheses in
   let var_types = List.filter (fun x -> match x with | None -> false | _ -> true) var_types_opt in
   let vars_str = 

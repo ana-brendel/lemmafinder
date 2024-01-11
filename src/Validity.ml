@@ -29,7 +29,8 @@ let evaluate_example (hyp : EConstr.t) (context : LFContext.t) (generalization :
       hyp in
     let hyp_str_replace = format_evaluated_hypothesis hyp_replace context generalization.variables in
     (Consts.fmt "Definition %s." hyp_str_replace)
-  with _ -> raise (Failure "Error evaluating hypotheses with counterexample triggered in Validity.ml")
+  with _ -> if (List.length generalization.counterexamples = 0) then "" else
+  raise (Failure "Error evaluating hypotheses with counterexample triggered in Validity.ml")
 
 (* assumes a counter example is returned --> copied from original lfind*)
 let gather_counterexamples (output : string list) : string list = 
