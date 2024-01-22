@@ -98,9 +98,11 @@ let check_generalizations (context : LFContext.t) (generalizations : Generalizat
             )
           else 
             (
-              List.iter print_endline var_strings;
+              (* Patch for error with not all variables having examples -- triggered on someone elses system *)
+              iterate valid ({g with valid = false} :: invalid) rest
+              (* List.iter print_endline var_strings;
               List.iter print_endline counterexamples;
-              raise (Failure "2. Error in gathering counterexamples (triggered in Validity.ml)")
+              raise (Failure "2. Error in gathering counterexamples (triggered in Validity.ml)") *)
             )
         )
   in iterate [] [] generalizations

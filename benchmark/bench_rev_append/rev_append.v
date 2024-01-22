@@ -20,7 +20,7 @@ intros.
 induction x.
 - reflexivity.
 - simpl.
- lfind. 
+ (* lfind. *)
  Admitted.
 
 (* rewrite rev_append. rewrite IHx. reflexivity.
